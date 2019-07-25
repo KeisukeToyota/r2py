@@ -9,7 +9,8 @@ use std::io::Write;
 
 #[pyfunction]
 fn download(url: &str) -> PyResult<()> {
-    let mut res = reqwest.get(str).unwrap();
+    let client = reqwest::Client::new();
+    let mut res = client.get(url).send().unwrap();
 
     let mut body: Vec<u8> = vec![];
     res.read_to_end(&mut body).unwrap();
