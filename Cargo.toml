@@ -1,0 +1,14 @@
+[package]
+name = "r2py"
+version = "0.1.0"
+
+[lib]
+name = "r2py"
+crate-type = ["cdylib"]
+
+[dependencies]
+reqwest = "*"
+
+[dependencies.pyo3]
+version = "0.7.0"
+features = ["extension-module"]
