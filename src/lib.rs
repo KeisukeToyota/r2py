@@ -3,20 +3,34 @@ extern crate reqwest;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
+use std::ffi::OsStr;
 use std::fs::File;
+use std::io::copy;
 use std::io::Read;
 use std::io::Write;
+use std::path::Path;
 
 #[pyfunction]
 fn download(url: &str) -> PyResult<()> {
-    let client = reqwest::Client::new();
-    let mut res = client.get(url).send().unwrap();
+    let mut res = reqwest::get(url).expect("request failed");
+    {
+        let resp = &res;
+        let url_parse: Vec<&str> = {
+            *resp.url().path().split('/').collect()
+        };
 
-    let mut body: Vec<u8> = vec![];
-    res.read_to_end(&mut body).unwrap();
-    let mut f = File::create("foo.jpg").unwrap();
-    f.write_all(&body);
+        let file_name = match url_parse.last() {
+            Some(l) => l,
+            None => "hoge"
+        };
+        let path = Path::new(OsStr::new(file_name));
+        let mut file = File::create(path).expect("create failed");
+        *resp.copy_to(&mut file).expect("");
+    }
 
+
+//    copy(&mut res, &mut file).expect("");
+//    println!("{:?}", file_name);
     Ok(())
 }
 
