@@ -22,8 +22,6 @@ fn download(url: &str) -> PyResult<()> {
     let mut file = File::create(path).expect("create failed");
     &res.copy_to(&mut file).expect("");
 
-    println!("Done!!");
-
     Ok(())
 }
 
