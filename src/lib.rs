@@ -24,7 +24,7 @@ fn download(url: &str) -> PyResult<()> {
                           .expect("cannot get content-length...");
                           
     let mut res = client.get(url)
-                        .header(RANGE, format!("bytes={}-{:?}", 1, length))
+                        .header(RANGE, format!("bytes={}-{:?}", 0, length))
                         .send()
                         .expect("hgoe");
 
@@ -33,13 +33,14 @@ fn download(url: &str) -> PyResult<()> {
 
     let l: Vec<i32> = (0..split_num).map(|x| ((length.to_str().unwrap()).parse::<i32>().unwrap() + x) / split_num)
                                     .collect();
-    let args: Vec<(i32, i32)> = l.iter().enumerate().map(|(i, x)| {
+    let args: Vec<(usize, &str)> = l.iter().enumerate().map(|(i, x)| {
         let s = match i {
             0 => 0,
             _ => (&l[..i]).iter().fold(0, |sum, y| sum + y) + 1
         };
         let e = (&l[..i]).iter().fold(0, |sum, y| sum + y) + x;
-        (s, e)
+        let range = format!("bytes={}-{}", s, e);
+        (i, &range.as_str())
     }).collect();
 
     println!("{:?}", args);
