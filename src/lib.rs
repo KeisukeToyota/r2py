@@ -11,7 +11,7 @@ use std::path::Path;
 fn download(url: &str) -> PyResult<()> {
     let mut res = reqwest::get(url).expect("request failed");
         
-    let url_parse: Vec<&str> = (&res).url().path().split('/').collect();
+    let url_parse: Vec<&str> = url.split('/').collect();
 
     let file_name = match url_parse.last() {
         Some(name) => name,
