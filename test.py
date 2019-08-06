@@ -42,8 +42,9 @@ def fibonacci_py(n):
 
 
 if __name__ == '__main__':
-    url = 'https://www.fnordware.com/superpng/pnggrad8rgb.png'
-    download_py(url)
+    # url = 'https://www.fnordware.com/superpng/pnggrad8rgb.png'
+    url = 'http://ipv4.download.thinkbroadband.com/1GB.zip'
+    # download_py(url)
     download_rs(url)
-    fibonacci_py(40)
-    fibonacci_rs(40)
+    # fibonacci_py(40)
+    # fibonacci_rs(40)

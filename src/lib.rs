@@ -6,10 +6,43 @@ use pyo3::wrap_pyfunction;
 use std::ffi::OsStr;
 use std::fs::File;
 use std::path::Path;
+use reqwest::header::{RANGE, CONTENT_LENGTH};
+use reqwest::Client;
+
+// l = [(self.total_length + i) // self.split_num for i in range(self.split_num)]
+// args = [(i, 0 if i == 0 else sum(l[:i]) + 1, sum(l[:i]) + val) for i, val in enumerate(l)]
 
 #[pyfunction]
 fn download(url: &str) -> PyResult<()> {
-    let mut res = reqwest::get(url).expect("request failed");
+    let client = Client::new();
+    let head_resp = client.head(url)
+                          .send()
+                          .expect("send error...");
+
+    let length = head_resp.headers()
+                          .get(CONTENT_LENGTH)
+                          .expect("cannot get content-length...");
+                          
+    let mut res = client.get(url)
+                        .header(RANGE, format!("bytes={}-{:?}", 1, length))
+                        .send()
+                        .expect("hgoe");
+
+    let clients: Vec<Client> = vec![Client::new(); 4];
+    let split_num = ((length.to_str().unwrap()).parse::<i32>().unwrap()) / 300000;
+
+    let l: Vec<i32> = (0..split_num).map(|x| ((length.to_str().unwrap()).parse::<i32>().unwrap() + x) / split_num)
+                                    .collect();
+    let args: Vec<(i32, i32)> = l.iter().enumerate().map(|(i, x)| {
+        let s = match i {
+            0 => 0,
+            _ => (&l[..i]).iter().fold(0, |sum, y| sum + y) + 1
+        };
+        let e = (&l[..i]).iter().fold(0, |sum, y| sum + y) + x;
+        (s, e)
+    }).collect();
+
+    println!("{:?}", args);
         
     let url_parse: Vec<&str> = url.split('/').collect();
 
