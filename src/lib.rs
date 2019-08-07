@@ -9,9 +9,13 @@ use std::path::Path;
 use std::thread;
 use reqwest::header::{RANGE, CONTENT_LENGTH};
 use reqwest::Client;
+use std::borrow::Cow;
 
-// l = [(self.total_length + i) // self.split_num for i in range(self.split_num)]
-// args = [(i, 0 if i == 0 else sum(l[:i]) + 1, sum(l[:i]) + val) for i, val in enumerate(l)]
+
+struct Arg<'a> {
+    index: usize,
+    range: Cow<'a, str>,
+}
 
 #[pyfunction]
 fn download(url: &'static str) -> PyResult<()> {
@@ -29,35 +33,92 @@ fn download(url: &'static str) -> PyResult<()> {
                         .send()
                         .expect("hgoe");
 
-    let clients: Vec<Client> = vec![Client::new(); 4];
+    // let clients: Vec<Client> = vec![Client::new(); 4];
     let split_num = ((length.to_str().unwrap()).parse::<i32>().unwrap()) / 300000;
 
     let hoge: Vec<i32> = (0..split_num).map(|x| ((length.to_str().unwrap()).parse::<i32>().unwrap() + x) / split_num)
                                     .collect();
-    let mut args: Vec<(usize, String)> = hoge.iter().enumerate().map(|(i, x)| {
+    let args: Vec<Arg> = (&hoge).into_iter().enumerate().map(|(i, x)| {
         let s = match i {
             0 => 0,
             _ => (&hoge[..i]).iter().fold(0, |sum, y| sum + y) + 1
         };
         let e = (&hoge[..i]).iter().fold(0, |sum, y| sum + y) + x;
-        (i, format!("bytes={}-{}", s, e))
+        let tmp = format!("bytes={}-{}", s, e);
+        Arg { index: i, range: Cow::Owned(tmp) }
     }).collect();
 
-    let (l, r) = args.split_at(args.len() / 2);
-    let (ll, lr) = l.split_at(l.len() / 2);
-    let (rl, rr) = r.split_at(r.len() / 2);
-    let split_args = vec![ll, lr, rl, rr];
+    // let (l, r) = args.split_at(args.len() / 2);
+    // let (ll, lr) = &l.split_at(&l.len() / 2);
+    // let (rl, rr) = &r.split_at(&r.len() / 2);
 
-    for (&client, &arg) in clients.iter().zip(split_args.iter()) {
-        thread::spawn(move || {
-            for &a in arg {
-                let mut res = client.get(url).header(RANGE, a.1).send().expect("hoge");
-                let path = Path::new(&format!("{}.tmp", a.0));
-                let mut file = File::create(path).expect("create failed");
-                &res.copy_to(&mut file).expect("hoge");
-            }
-        });
-    }
+    // for &arguments in [ll, lr, rl, rr].iter() {
+    //     thread::spawn(move || {
+    //         for arg in arguments.iter() {
+    //             let client = Client::new();
+    //             let mut res = client.get(url).header(RANGE, format!("{}", arg.range)).send().expect("hoge");
+    //             let tmp = format!("{}.tmp", arg.index);
+    //             let path = Path::new(&tmp);
+    //             let mut file = File::create(path).expect("create failed");
+    //             &res.copy_to(&mut file).expect("hoge");
+    //         }
+    //     });
+    // }
+
+    // thread::spawn(move || {
+    //     for arg in ll {
+    //         let client = Client::new();
+    //         let mut res = client.get(url).header(RANGE, format!("{}", arg.range)).send().expect("hoge");
+    //         let tmp = format!("{}.tmp", arg.index);
+    //         let path = Path::new(&tmp);
+    //         let mut file = File::create(path).expect("create failed");
+    //         &res.copy_to(&mut file).expect("hoge");
+    //     }
+    // });
+
+    // thread::spawn(move || {
+    //     for arg in lr {
+    //         let client = Client::new();
+    //         let mut res = client.get(url).header(RANGE, format!("{}", arg.range)).send().expect("hoge");
+    //         let tmp = format!("{}.tmp", arg.index);
+    //         let path = Path::new(&tmp);
+    //         let mut file = File::create(path).expect("create failed");
+    //         &res.copy_to(&mut file).expect("hoge");
+    //     }
+    // });
+
+    // thread::spawn(move || {
+    //     for arg in rl {
+    //         let client = Client::new();
+    //         let mut res = client.get(url).header(RANGE, format!("{}", arg.range)).send().expect("hoge");
+    //         let tmp = format!("{}.tmp", arg.index);
+    //         let path = Path::new(&tmp);
+    //         let mut file = File::create(path).expect("create failed");
+    //         &res.copy_to(&mut file).expect("hoge");
+    //     }
+    // });
+
+    // thread::spawn(move || {
+    //     for arg in rr {
+    //         let client = Client::new();
+    //         let mut res = client.get(url).header(RANGE, format!("{}", arg.range)).send().expect("hoge");
+    //         let tmp = format!("{}.tmp", arg.index);
+    //         let path = Path::new(&tmp);
+    //         let mut file = File::create(path).expect("create failed");
+    //         &res.copy_to(&mut file).expect("hoge");
+    //     }
+    // });
+
+    // for (&client, &arg) in clients.iter().zip(split_args.iter()) {
+    //     thread::spawn(move || {
+    //         for &a in arg {
+    //             let mut res = client.get(url).header(RANGE, a.1).send().expect("hoge");
+    //             let path = Path::new(&format!("{}.tmp", a.0));
+    //             let mut file = File::create(path).expect("create failed");
+    //             &res.copy_to(&mut file).expect("hoge");
+    //         }
+    //     });
+    // }
 
     let url_parse: Vec<&str> = url.split('/').collect();
 
